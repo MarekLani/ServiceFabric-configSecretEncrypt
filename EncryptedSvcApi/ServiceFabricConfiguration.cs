@@ -24,7 +24,7 @@ namespace EncryptedSvcApi
             {
                 foreach (var parameter in section.Parameters)
                 {
-                    //For the purpose of demo we assume that the parameter is encripted
+                    //For the purpose of demo we assume that the parameter is encrypted
                     SecureString jjHeslo = parameter.DecryptValue();
                     Data[$"{section.Name}{ConfigurationPath.KeyDelimiter}{parameter.Name}"] = Common.Common.SecureStringToString(jjHeslo);
                 }

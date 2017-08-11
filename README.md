@@ -46,3 +46,140 @@ Next, add thumbprint into ApplicationManifest.xml
 ### Step 4 - Test locally
 Open Visual Studio project and deploy into local ServiceFabric.
 Check port in ServiceManifest.xml and start browser (http://localhost:8247/api/values/5)
+
+
+
+## Service Fabric Configuration Provider for Stateless .NET Core service
+
+We have implemented custom configuration provider which allows us to read configuration variables (in this case decrypt encrypted secret) from service settings file. This has been implemented in following way:
+
+#### Step1 - Create and add custom configuration provider to the configuration builder
+
+In order to use custom config provider we have implemented following artefacts:
+
+**ServiceFabricConfigurationProvider** - configuration provider for ASP.NET Core that retrieves setting from the Service Fabric configuration
+
+**ServiceFabricConfigurationSource** - In order to add provider to the configuration builder we also need to implement a configuration source
+
+**AddServiceFabricConfiguration** - extension method which enables us to build our configuration
+
+For more details please see:  https://dzimchuk.net/configuring-asp-net-core-applications-in-service-fabric/ 
+
+
+
+```c#
+internal class ServiceFabricConfigurationProvider : ConfigurationProvider
+    {
+        private readonly ServiceContext serviceContext;
+
+        public ServiceFabricConfigurationProvider(ServiceContext serviceContext)
+        {
+            this.serviceContext = serviceContext;
+        }
+
+        public override void Load()
+        {
+            var config = serviceContext.CodePackageActivationContext.GetConfigurationPackageObject("Config");
+            foreach (var section in config.Settings.Sections)
+            {
+                foreach (var parameter in section.Parameters)
+                {
+                    //For the purpose of demo we assume that the parameter is encrypted
+                    SecureString jjHeslo = parameter.DecryptValue();
+                    Data[$"{section.Name}{ConfigurationPath.KeyDelimiter}{parameter.Name}"] = Common.Common.SecureStringToString(jjHeslo);
+                }
+            }
+        }
+    }
+
+    internal class ServiceFabricConfigurationSource : IConfigurationSource
+    {
+        private readonly ServiceContext serviceContext;
+
+        public ServiceFabricConfigurationSource(ServiceContext serviceContext)
+        {
+            this.serviceContext = serviceContext;
+        }
+
+        public IConfigurationProvider Build(IConfigurationBuilder builder)
+        {
+            return new ServiceFabricConfigurationProvider(serviceContext);
+        }
+    }
+
+    public static class ServiceFabricConfigurationExtensions
+    {
+        public static IConfigurationBuilder AddServiceFabricConfiguration(this IConfigurationBuilder builder, ServiceContext serviceContext)
+        {
+            builder.Add(new ServiceFabricConfigurationSource(serviceContext));
+            return builder;
+        }
+    }
+```
+
+Implementation of above mentioned classes and method can be found in ServiceFabricConfiguration.cs file
+
+
+
+#### Step 2 - Modify Startup.cs to use custom config provider
+
+Inject StatelessServiceContext serviceContext parameter
+
+AddServiceFabricConfiguration - extension that adds a  custom configuration provider that reads from Service Fabric configuration packages as explained
+
+```c#
+ public Startup(IHostingEnvironment env, StatelessServiceContext serviceContext)
+ {
+   var builder = new ConfigurationBuilder()
+     .AddServiceFabricConfiguration(serviceContext)
+     .SetBasePath(env.ContentRootPath)
+     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+     .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true)         
+     .AddEnvironmentVariables();
+   Configuration = builder.Build();
+ }
+```
+
+
+
+#### Step 3 - Create Model/Entities classes that has properties that match the settings in a section in settings file
+
+```C#
+ public class JJConfigSettings
+ {
+   public string JJHeslo { get; set; }
+ }
+```
+
+#### Step 4 - Register settings in Dependency Injection container 
+
+```c#
+public void ConfigureServices(IServiceCollection services)
+{
+    services.Configure<JJConfigSettings>(Configuration.GetSection("JJConfigSection"));
+    
+    // Add framework services.
+    services.AddMvc();
+}
+```
+
+#### Step 5 - Access settings section in WebAPI controller
+
+```c#
+[Route("api/[controller]")]
+public class ValuesController : Controller
+{
+  private readonly IOptions<JJConfigSettings> _jjConfigSettings;
+  public ValuesController(IOptions<JJConfigSettings> jjConfigSettings)
+  {
+ 	 _jjConfigSettings = jjConfigSettings;
+  }
+
+  // GET api/values/5
+  [HttpGet("{id}")]
+  public string Get(int id)
+  {
+    return _jjConfigSettings.Value.JJHeslo;
+  }
+}
+```
