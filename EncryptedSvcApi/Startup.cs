@@ -8,14 +8,16 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.EnvironmentVariables;
+using System.Fabric;
 
 namespace EncryptedSvcApi
 {
     public class Startup
     {
-        public Startup(IHostingEnvironment env)
+        public Startup(IHostingEnvironment env, StatelessServiceContext serviceContext)
         {
-            var builder = new ConfigurationBuilder()                
+            var builder = new ConfigurationBuilder()
+                .AddServiceFabricConfiguration(serviceContext)
                 .SetBasePath(env.ContentRootPath)
                 .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
                 .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true)                
@@ -28,6 +30,7 @@ namespace EncryptedSvcApi
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.Configure<JJConfigSettings>(Configuration.GetSection("JJConfigSection"));
             // Add framework services.
             services.AddMvc();
         }
