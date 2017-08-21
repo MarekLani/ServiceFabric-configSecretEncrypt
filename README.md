@@ -193,14 +193,18 @@ public class ValuesController : Controller
 
 3. Create KeyVault secret:
 
-   ![Create KeyVault secre](img/img1.png)
+   ![Create KeyVault secre](img/img1.PNG)
 
-4. Set Key Vault Access Policies for KeyVault![Set access policies for Key Vault](img/img2.png)
+4. Set Key Vault Access Policies for KeyVault![Set access policies for Key Vault](img/img2.PNG)
 
 5. Create Service Fabric cluster, on cluster configuration blade do not forget to allow communication on custom endpoint (8247, that is where our API is listening)
 
 6. Configure cluster security settings:
 
    - Source Key Vault (can be find in Properties of Key Vault in portal). Note: input is case-sensitive and sometime the value does not get copied correctly, please correct manually
+
    - Certificate-url: can be obtained thru key vault secret details
+
    - Certificate thumbprint: returned during generation of certificate
+
+     ![Security settings](img/img5.PNG)
