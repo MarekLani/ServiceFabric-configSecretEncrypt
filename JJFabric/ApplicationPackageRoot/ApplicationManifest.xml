@@ -9,13 +9,23 @@
     <Parameter Name="Web1_PartitionCount" DefaultValue="1" />
     <Parameter Name="Web1_TargetReplicaSetSize" DefaultValue="3" />
     <Parameter Name="EncryptedService_InstanceCount" DefaultValue="-1" />
+    <Parameter Name="Encrypted_Value" DefaultValue="" />
+    <Parameter Name="Cert_Thumbprint" DefaultValue="" />
   </Parameters>
   <!-- Import the ServiceManifest from the ServicePackage. The ServiceManifestName and ServiceManifestVersion 
        should match the Name and Version attributes of the ServiceManifest element defined in the 
        ServiceManifest.xml file. -->
   <ServiceManifestImport>
     <ServiceManifestRef ServiceManifestName="EncryptedSvcApiPkg" ServiceManifestVersion="1.0.0" />
-    <ConfigOverrides />
+    <ConfigOverrides>
+      <ConfigOverride Name="Config">
+        <Settings>
+          <Section Name="JJConfigSection">
+            <Parameter Name="JJHeslo" Value="[Encrypted_Value]" IsEncrypted="true" />
+          </Section>
+        </Settings>
+      </ConfigOverride>
+    </ConfigOverrides>
   </ServiceManifestImport>
   <DefaultServices>
     <!-- The section below creates instances of service types, when an instance of this 
@@ -41,6 +51,6 @@
     </SecurityAccessPolicies>
   </Policies>
   <Certificates>
-    <SecretsCertificate X509FindValue="37B63D21204C52E6F1163C198AE67C055008B6BD" Name="EncryptedSvcApiCert" />
+    <SecretsCertificate X509FindValue="[Cert_Thumbprint]" Name="EncryptedSvcApiCert" />
   </Certificates>
 </ApplicationManifest>
