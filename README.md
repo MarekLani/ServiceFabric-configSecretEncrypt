@@ -208,3 +208,36 @@ public class ValuesController : Controller
    - Certificate thumbprint: returned during generation of certificate
 
      ![Security settings](img/img5.PNG)
+
+
+
+## Installing additional certificate to Azure Service Fabric cluster
+
+In this section we describe how is it possible to install additional certificates to Service Fabric cluster, resp. to machines within the scale set, on top of which the Service Fabric is running.
+
+To do so, we need to alter ARM template of the scale set using Azure Resource Explorer (http://resources.azure.com or you can clone Azure resource explorer directly from github: https://github.com/projectkudu/AzureResourceExplorer). In left pane you need to navigate to the scale set resource and subsequently check the node type, you have created and that you want to install certificate to. After doing so, you should see ARM template of the scale set, and you should alter the *secrets* array. This array is either empty, if you have created non secured SF cluster, or it contains reference to certificate which you have used to secure the SF cluster. To demonstrate addition of certificate, we have used non secured cluster and altered secrets array should look like this:
+
+```json
+"secrets": [
+          {
+            "sourceVault": {
+              "id": "/subscriptions/4388a205-1a64-4cfe-86e9-2cfab9b0300f/resourceGroups/ServiceFabric/providers/Microsoft.KeyVault/vaults/myfabrickeyvault"
+            },
+            "vaultCertificates": [
+              {
+                "certificateUrl": "https://myfabrickeyvault.vault.azure.net/secrets/DataEncrypt/48afb773f5944199952ed87836005279",
+                "certificateStore": "My"
+              }
+            ]
+          }
+        ]
+
+```
+
+To alter template, you need to click Edit button and after you are done, you commit the changes by pressing Put button.
+
+Fields sourceVault -> id and caultCertificates->certificateUrl can be obtained from Key Vault thru Portal. Below there is screenshot that is showing the Resource Explorer interface.
+
+Note: Installation of certificates to the whole cluster (all the nodes) can take several minutes.
+
+![Installing certificate to scale set using resource explorer](img/img6.PNG)
